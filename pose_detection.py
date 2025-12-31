@@ -25,7 +25,7 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
-landmarkerResult = LandmarkerResult(True)
+landmarkerResult = LandmarkerResult(False)
 
 options = PoseLandmarkerOptions(
     base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
@@ -52,28 +52,8 @@ with PoseLandmarker.create_from_options(options) as landmarker:
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=feedForDetection)  
         # Use the landmarker to detect poses in the input camera feed.
         landmarker.detect_async(mp_image, timestamp)        
-
-        # Check if the callback has stored a result yet
-        if landmarkerResult.result and landmarkerResult.result.pose_landmarks:
-
-            # --- DRAWING SECTION ---
-            for pose_landmarks in landmarkerResult.result.pose_landmarks:
-                # 1. Draw the Lines (Connections)
-                for connection in POSE_CONNECTIONS:
-                    start_point = pose_landmarks[connection[0]]
-                    end_point = pose_landmarks[connection[1]]
-                    
-                    # Convert normalized coordinates to pixel coordinates
-                    pt1 = (int(start_point.x * w), int(start_point.y * h))
-                    pt2 = (int(end_point.x * w), int(end_point.y * h))
-                    cv2.line(cameraFeed, pt1, pt2, (255, 255, 255), 2) # White lines
-
-                # 2. Draw the Dots (Landmarks)
-                for landmark in pose_landmarks:
-                    cx, cy = int(landmark.x * w), int(landmark.y * h)
-                    cv2.circle(cameraFeed, (cx, cy), 4, (0, 0, 255), -1) # Red dots
         
-
+        landmarkerResult.drawResult(cameraFeed, h, w)
         # Display the resulting frame
         cv2.imshow('Camera Feed', cameraFeed)
 
