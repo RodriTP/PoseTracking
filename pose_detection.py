@@ -1,25 +1,16 @@
 import cv2
 import mediapipe as mp
 from mediapipe.tasks.python import vision
+from mediapipe.tasks.python.vision import PoseLandmarkerResult
+from landmarker_result import LandmarkerResult
 import time
-
-
-#Class to excract the results from the async callback
-class LandmarkerResult:
-    def __init__(self):
-        self.result = None
-
-    #fuction to callback to print results
-    def print_result(self, result: mp.tasks.vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
-        self.result = result
-        print(f'Pose landmarks: {result.pose_landmarks}')
 
 # --- POSE CONNECTION CONSTANTS ---
 # These pairs represent the lines of the skeleton (e.g., 11-12 is shoulder to shoulder)
 POSE_CONNECTIONS = [
-    (11, 12), (11, 13), (13, 15), (12, 14), (14, 16), # Arms
-    (11, 23), (12, 24), (23, 24), # Torso
-    (23, 25), (24, 26), (25, 27), (26, 28), (27, 31), (28, 32) # Legs
+    (0, 1), (0, 2), (2, 4), (1, 3), (3, 5), # Arms
+    (0, 12), (1, 13), (12, 13), # Torso
+    (12, 14), (13, 15), (14, 16), (15, 17) # Legs
 ]
 
 # Initialize live camera feed with openCV
@@ -34,12 +25,12 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
-landmarker_data = LandmarkerResult()
+landmarkerResult = LandmarkerResult(True)
 
 options = PoseLandmarkerOptions(
     base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
     running_mode=VisionRunningMode.LIVE_STREAM,
-    result_callback=landmarker_data.print_result)
+    result_callback=landmarkerResult.callbackResult)
 
 # Create a pose landmarker instance with the live stream mode:
 with PoseLandmarker.create_from_options(options) as landmarker:
@@ -52,6 +43,7 @@ with PoseLandmarker.create_from_options(options) as landmarker:
         # Capture frame-by-frame
         ret, cameraFeed = capture.read()
 
+        cameraFeed = cv2.resize(cameraFeed, (860,640))
         h,w, _ = cameraFeed.shape
 
         #coloring conversion for mediapipe
@@ -59,13 +51,13 @@ with PoseLandmarker.create_from_options(options) as landmarker:
         #Transform the OpenCV image to mediapipe image format
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=feedForDetection)  
         # Use the landmarker to detect poses in the input camera feed.
-        landmarker.detect_async(mp_image, timestamp)
-        
-        # --- DRAWING SECTION ---
+        landmarker.detect_async(mp_image, timestamp)        
+
         # Check if the callback has stored a result yet
-        if landmarker_data.result and landmarker_data.result.pose_landmarks:
-            for pose_landmarks in landmarker_data.result.pose_landmarks:
-                
+        if landmarkerResult.result and landmarkerResult.result.pose_landmarks:
+
+            # --- DRAWING SECTION ---
+            for pose_landmarks in landmarkerResult.result.pose_landmarks:
                 # 1. Draw the Lines (Connections)
                 for connection in POSE_CONNECTIONS:
                     start_point = pose_landmarks[connection[0]]
