@@ -1,17 +1,8 @@
 import cv2
 import mediapipe as mp
 from mediapipe.tasks.python import vision
-from mediapipe.tasks.python.vision import PoseLandmarkerResult
 from landmarker_result import LandmarkerResult
 import time
-
-# --- POSE CONNECTION CONSTANTS ---
-# These pairs represent the lines of the skeleton (e.g., 11-12 is shoulder to shoulder)
-POSE_CONNECTIONS = [
-    (0, 1), (0, 2), (2, 4), (1, 3), (3, 5), # Arms
-    (0, 12), (1, 13), (12, 13), # Torso
-    (12, 14), (13, 15), (14, 16), (15, 17) # Legs
-]
 
 # Initialize live camera feed with openCV
 capture = cv2.VideoCapture(0)#TODO : change the index if you have multiple cameras
@@ -25,7 +16,7 @@ PoseLandmarker = mp.tasks.vision.PoseLandmarker
 PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
-landmarkerResult = LandmarkerResult(False)
+landmarkerResult = LandmarkerResult(True)
 
 options = PoseLandmarkerOptions(
     base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
@@ -53,8 +44,11 @@ with PoseLandmarker.create_from_options(options) as landmarker:
         # Use the landmarker to detect poses in the input camera feed.
         landmarker.detect_async(mp_image, timestamp)        
         
-        landmarkerResult.drawResult(cameraFeed, h, w)
+        print('is pose detected:', landmarkerResult.isPoseDetected())
+        print(f'Detected Pose: {landmarkerResult.detectedPose}\n')
+        
         # Display the resulting frame
+        landmarkerResult.drawResult(cameraFeed, h, w)
         cv2.imshow('Camera Feed', cameraFeed)
 
         #exit on 'q' key press
