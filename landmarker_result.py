@@ -104,7 +104,7 @@ class LandmarkerResult:
         """
         Returns true if a pose is detected, the detected pose is in self.detectedPose\n
         This methode use the world landmarks to determine the pose\n
-        Valid poses are T pose, U pose and N pose
+        Valid poses are 'T' pose, 'U' pose and 'n' pose
         """
         if self.result and self.result.pose_world_landmarks:
             #variables for analysis
@@ -123,13 +123,13 @@ class LandmarkerResult:
             
             #T pose detection
             n = 6
-            for i in range(6):
+            for i in range(n):
                 x_sum += self.result.pose_world_landmarks[0][i].x
                 y_sum += self.result.pose_world_landmarks[0][i].y
                 xy_sum += self.result.pose_world_landmarks[0][i].x * self.result.pose_world_landmarks[0][i].y
                 x2_sum += self.result.pose_world_landmarks[0][i].x * self.result.pose_world_landmarks[0][i].x
             
-            arms_slope = (n*xy_sum-x_sum*y_sum)/(n*x2_sum - x_sum*x_sum)
+            shoulder_slope = (n*xy_sum-x_sum*y_sum)/(n*x2_sum - x_sum*x_sum)
             torso_slope = (center_hip_point[1]-neck_point[1])/(center_hip_point[0]-neck_point[0])
             
             #print(f'Arms slope: {arms_slope}, Torso slope: {torso_slope}')
@@ -137,16 +137,41 @@ class LandmarkerResult:
             #print(f'diffrence between slopes: {abs(abs(arms_slope) + (-1/abs(torso_slope)))}\n')
 
 
-            if abs(arms_slope) < 0.05 and abs(abs(arms_slope) + (-1/abs(torso_slope))) < 0.05 \
+            if abs(shoulder_slope) < 0.05 and abs(abs(shoulder_slope) + (-1/abs(torso_slope))) < 0.05 \
             and abs(abs(self.result.pose_world_landmarks[0][3].y)-abs(self.result.pose_world_landmarks[0][1].y)) < 0.1 \
             and abs(abs(self.result.pose_world_landmarks[0][5].y)-abs(self.result.pose_world_landmarks[0][1].y)) < 0.1 \
             and abs(abs(self.result.pose_world_landmarks[0][2].y)-abs(self.result.pose_world_landmarks[0][0].y)) < 0.1 \
             and abs(abs(self.result.pose_world_landmarks[0][4].y)-abs(self.result.pose_world_landmarks[0][0].y)) < 0.1:
                 self.detectedPose = 'T Pose'
                 return True
+
+            #U pose detection
+            n = 4
+            for i in range(n):
+                x_sum += self.result.pose_world_landmarks[0][i].x
+                y_sum += self.result.pose_world_landmarks[0][i].y
+                xy_sum += self.result.pose_world_landmarks[0][i].x * self.result.pose_world_landmarks[0][i].y
+                x2_sum += self.result.pose_world_landmarks[0][i].x * self.result.pose_world_landmarks[0][i].x
+            
+            shoulder_slope = (n*xy_sum-x_sum*y_sum)/(n*x2_sum - x_sum*x_sum)
+            torso_slope = (center_hip_point[1]-neck_point[1])/(center_hip_point[0]-neck_point[0])
+            left_arm_slope = (abs(self.result.pose_world_landmarks[0][2].y) - abs(self.result.pose_world_landmarks[0][4].y)) / (abs(self.result.pose_world_landmarks[0][2].x) - abs(self.result.pose_world_landmarks[0][4].x))
+            right_arm_slope = (abs(self.result.pose_world_landmarks[0][3].y) - abs(self.result.pose_world_landmarks[0][5].y)) / (abs(self.result.pose_world_landmarks[0][3].x) - abs(self.result.pose_world_landmarks[0][5].x))
+
+            print(f'Shoulder slope: {shoulder_slope}, Torso slope: {torso_slope}\nLeft arm: {abs(abs(self.result.pose_world_landmarks[0][4].x) - abs(self.result.pose_world_landmarks[0][2].x))}, Right arm slope: {abs(abs(self.result.pose_world_landmarks[0][3].x) - abs(self.result.pose_world_landmarks[0][5].x))}\n')
+
+            if abs(shoulder_slope) < 0.05 and abs(abs(shoulder_slope) + (-1/abs(torso_slope))) < 0.05 \
+            and abs(abs(self.result.pose_world_landmarks[0][4].x) - abs(self.result.pose_world_landmarks[0][2].x)) < 0.1 \
+            and abs(abs(self.result.pose_world_landmarks[0][3].x) - abs(self.result.pose_world_landmarks[0][5].x)) < 0.1 \
+            and self.result.pose_world_landmarks[0][4].y > self.result.pose_world_landmarks[0][0].y \
+            and self.result.pose_world_landmarks[0][5].y > self.result.pose_world_landmarks[0][1].y:
+                self.detectedPose = 'U Pose'
+                return True
+
+
             
             #print(len(self.result.pose_world_landmarks[0]))
-            print(f'World landmarks: {self.result.pose_world_landmarks[0]}\n')
+            #print(f'World landmarks: {self.result.pose_world_landmarks[0]}\n')
 
         self.detectedPose = 'No Pose Detected'
         return False

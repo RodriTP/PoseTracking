@@ -58,8 +58,3 @@ with PoseLandmarker.create_from_options(options) as landmarker:
 # When everything done, release the capture
 capture.release()
 cv2.destroyAllWindows()
-
-
-
-
-
